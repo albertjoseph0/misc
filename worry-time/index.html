@@ -1,0 +1,679 @@
+<title>Worry Time</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Atkinson+Hyperlegible+Mono:wght@400;500&family=Kalam:wght@400&family=Young+Serif&display=swap">
+<style>
+/* Layout: one calm column per page. A stack of index cards (blue rules, red header line) holds what you write; the timer sits beside the heading. */
+:root {
+  --bg: #E9EDF1;
+  --card: #FCFCFA;
+  --ink: #1C2532;
+  --muted: #5A6575;
+  --line: #D3DAE2;
+  --rule: #C6D9EA;
+  --margin: #CF5F5B;
+  --accent: #2D5A88;
+  --on-accent: #FFFFFF;
+  --accent-soft: #DCE6F1;
+  --people: #74549C;
+  --people-soft: #ECE4F5;
+  --warn: #9A6412;
+  --shadow: 0 1px 0 rgba(28,37,50,.06), 0 6px 18px -8px rgba(28,37,50,.18);
+
+  --f-display: "Young Serif", Georgia, "Times New Roman", serif;
+  --f-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "Atkinson Hyperlegible Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --f-hand: "Kalam", "Comic Sans MS", "Segoe Print", cursive;
+
+  --line-h: 2.6rem;
+  --radius: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F141B; --card: #19212C; --ink: #E4E9F0; --muted: #98A3B3; --line: #2A3442;
+    --rule: #26384B; --margin: #B65A58; --accent: #8DB5E3; --on-accent: #0F1A28; --accent-soft: #21324A;
+    --people: #BDA2E0; --people-soft: #2E2640; --warn: #E2B061;
+    --shadow: 0 1px 0 rgba(0,0,0,.3), 0 8px 22px -10px rgba(0,0,0,.6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F141B; --card: #19212C; --ink: #E4E9F0; --muted: #98A3B3; --line: #2A3442;
+  --rule: #26384B; --margin: #B65A58; --accent: #8DB5E3; --on-accent: #0F1A28; --accent-soft: #21324A;
+  --people: #BDA2E0; --people-soft: #2E2640; --warn: #E2B061;
+  --shadow: 0 1px 0 rgba(0,0,0,.3), 0 8px 22px -10px rgba(0,0,0,.6);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-size: 1rem; line-height: 1.5;
+  padding-inline: 16px; padding-block: 0 4rem;
+}
+button, input, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+.wrap { max-width: 46rem; margin-inline: auto; }
+
+/* Top bar */
+.top {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1.5rem;
+  padding-block: 1.25rem; border-bottom: 1px solid var(--line);
+}
+.brand { font-family: var(--f-display); font-size: 1.25rem; letter-spacing: .01em; }
+.brand small { font-family: var(--f-body); font-size: .8rem; color: var(--muted); margin-left: .5rem; letter-spacing: 0; }
+.steps { display: flex; gap: .25rem; list-style: none; margin: 0; padding: 0; flex-wrap: wrap; }
+.steps button {
+  border: 0; background: none; padding: .35rem .65rem; border-radius: 999px; cursor: pointer;
+  color: var(--muted); font-size: .875rem; display: inline-flex; gap: .4rem; align-items: center;
+}
+.steps button .n {
+  width: 1.35rem; height: 1.35rem; border-radius: 50%; border: 1px solid currentColor;
+  display: inline-grid; place-items: center; font-size: .75rem; font-family: var(--f-mono);
+}
+.steps button[aria-current="step"] { background: var(--accent-soft); color: var(--ink); }
+.steps button[aria-current="step"] .n { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+
+/* Example banner */
+.banner {
+  margin-top: 1rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem;
+  font-size: .875rem; color: var(--muted); padding: .6rem .85rem; border: 1px dashed var(--line); border-radius: var(--radius);
+}
+.banner strong { color: var(--ink); font-weight: 700; }
+
+/* Page head */
+.page-head {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem 2rem; align-items: start;
+  padding-block: 2rem 1.5rem;
+}
+.eyebrow { margin: 0 0 .35rem; font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(1.9rem, 5vw, 2.5rem); line-height: 1.1; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--f-display); font-weight: 400; font-size: 1.35rem; margin: 0; text-wrap: balance; }
+.lede { margin: .6rem 0 0; color: var(--muted); max-width: 34rem; }
+
+/* Timer */
+.timer {
+  min-width: 13rem; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: .8rem 1rem .9rem; display: grid; gap: .5rem;
+}
+.timer-label { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; gap: 1rem; }
+.timer-time { font-family: var(--f-mono); font-size: 2.25rem; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.timer-bar { height: 4px; border-radius: 2px; background: var(--accent-soft); overflow: hidden; }
+.timer-bar span { display: block; height: 100%; width: 100%; background: var(--accent); transform-origin: left; }
+.timer-ctrls { display: flex; gap: .4rem; }
+.timer[data-state="done"] .timer-time { color: var(--warn); }
+.timer[data-state="done"] .timer-bar span { background: var(--warn); }
+.timer-msg { font-size: .8125rem; color: var(--warn); margin: 0; }
+
+/* Buttons */
+.btn {
+  border: 1px solid var(--line); background: var(--card); border-radius: var(--radius);
+  padding: .45rem .85rem; cursor: pointer; font-size: .9rem; line-height: 1.2;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 700; }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.small { padding: .3rem .6rem; font-size: .8125rem; }
+.btn.ghost { border-color: transparent; background: none; color: var(--muted); }
+.btn.ghost:hover { color: var(--ink); border-color: var(--line); }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+
+/* Index card */
+.card {
+  background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+  border: 1px solid var(--line); overflow: hidden;
+}
+.card-head {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 1rem;
+  padding: .9rem 1.1rem .55rem; border-bottom: 2px solid var(--margin);
+  font-size: .8125rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+}
+.card-head .count { font-family: var(--f-mono); letter-spacing: 0; text-transform: none; font-variant-numeric: tabular-nums; }
+.lines { list-style: none; margin: 0; padding: 0; counter-reset: ln; }
+.line {
+  display: flex; align-items: center; gap: .5rem; min-height: var(--line-h);
+  border-bottom: 1px solid var(--rule); padding-inline: 1.1rem .5rem; counter-increment: ln;
+}
+.line::before { content: counter(ln); font-family: var(--f-mono); font-size: .75rem; color: var(--muted); width: 1.2rem; flex: none; }
+.line-input {
+  flex: 1; min-width: 0; border: 0; background: transparent; padding: .35rem 0;
+  font-family: var(--f-hand); font-size: 1.2rem; line-height: 1.3;
+}
+.line-input::placeholder { color: var(--muted); opacity: .55; }
+.line-input:focus-visible { outline: none; }
+.line:focus-within { background: var(--accent-soft); }
+.x {
+  flex: none; width: 1.9rem; height: 1.9rem; border: 0; background: none; border-radius: 50%;
+  color: var(--muted); cursor: pointer; font-size: 1.1rem; line-height: 1; opacity: .5;
+}
+.x:hover, .x:focus-visible { opacity: 1; background: var(--line); }
+.add-row { padding: .55rem .7rem .7rem; }
+.add {
+  border: 0; background: none; color: var(--accent); cursor: pointer; font-weight: 700; font-size: .9rem;
+  padding: .4rem .45rem; border-radius: var(--radius); display: inline-flex; align-items: center; gap: .45rem;
+}
+.add .plus {
+  width: 1.4rem; height: 1.4rem; border-radius: 50%; border: 1.5px solid currentColor;
+  display: inline-grid; place-items: center; font-size: 1rem; line-height: 1;
+}
+.add:hover { background: var(--accent-soft); }
+
+/* Footer row */
+.foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .75rem; margin-top: 1.5rem; }
+.foot .hint { font-size: .8125rem; color: var(--muted); }
+.foot .right { display: flex; gap: .5rem; margin-left: auto; }
+
+/* Parts (Page 2 sub-steps) */
+.parts { display: flex; gap: 0; border-bottom: 1px solid var(--line); margin-bottom: 1.25rem; overflow-x: auto; }
+.parts button {
+  border: 0; background: none; cursor: pointer; padding: .6rem .9rem; font-size: .9rem; color: var(--muted);
+  border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap;
+}
+.parts button b { font-family: var(--f-mono); font-weight: 500; margin-right: .35rem; }
+.parts button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 700; }
+.part-intro { margin: 0 0 1rem; color: var(--muted); max-width: 36rem; }
+
+/* Categorize rows */
+.cat-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem 1rem; font-size: .8125rem; color: var(--muted); margin-bottom: .75rem; }
+.cat-meta .count { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.cat-list { display: grid; gap: .75rem; }
+.cat-row { padding: .9rem 1.1rem 1rem; display: grid; gap: .6rem; }
+.worry-text { font-family: var(--f-hand); font-size: 1.2rem; line-height: 1.35; margin: 0; overflow-wrap: anywhere; }
+.chips { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+.chip {
+  border: 1px solid var(--line); background: var(--card); border-radius: 999px; cursor: pointer;
+  padding: .3rem .75rem; font-size: .875rem; display: inline-flex; align-items: center; gap: .4rem;
+}
+.chip:hover { border-color: var(--muted); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 700; }
+.chip.suggested[aria-pressed="false"] { border-style: dashed; border-color: var(--accent); color: var(--accent); }
+.chip .sug { font-size: .6875rem; letter-spacing: .06em; text-transform: uppercase; opacity: .85; }
+.chip.people { color: var(--people); border-color: color-mix(in srgb, var(--people) 45%, var(--line)); }
+.chip.people[aria-pressed="true"] { background: var(--people); border-color: var(--people); color: var(--card); }
+.chip.people.suggested[aria-pressed="false"] { border-color: var(--people); }
+.chip-sep { width: 1px; height: 1.25rem; background: var(--line); margin-inline: .2rem; }
+.chip.new { color: var(--muted); border-style: dashed; }
+.new-cat { display: inline-flex; gap: .35rem; align-items: center; }
+.new-cat input {
+  border: 1px solid var(--accent); border-radius: 999px; padding: .3rem .75rem; font-size: .875rem;
+  background: var(--card); width: 11rem; max-width: 100%;
+}
+.thinking { font-size: .875rem; color: var(--muted); display: inline-flex; align-items: center; gap: .5rem; }
+.thinking::before {
+  content: ""; width: .8rem; height: .8rem; border-radius: 50%; border: 2px solid var(--accent-soft);
+  border-top-color: var(--accent); animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.cap-note { font-size: .8125rem; color: var(--warn); }
+
+/* Action cards */
+.act-list { display: grid; gap: 1rem; }
+.tag {
+  display: inline-block; font-size: .75rem; letter-spacing: .06em; text-transform: uppercase;
+  padding: .1rem .5rem; border-radius: 3px; background: var(--accent-soft); color: var(--accent); font-weight: 700;
+}
+.tag.people { background: var(--people-soft); color: var(--people); }
+.tag.none { background: none; color: var(--muted); border: 1px dashed var(--line); font-weight: 400; }
+.act-body { padding: .9rem 1.1rem 1rem; display: grid; gap: .7rem; }
+.field-label { font-size: .8125rem; font-weight: 700; color: var(--muted); display: block; margin-bottom: .25rem; }
+.act-input {
+  width: 100%; border: 0; resize: vertical; min-height: calc(var(--line-h) * 2);
+  font-family: var(--f-hand); font-size: 1.15rem; line-height: var(--line-h); padding: 0 .1rem;
+  background-color: transparent;
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--line-h) - 1px), var(--rule) calc(var(--line-h) - 1px), var(--rule) var(--line-h));
+  background-attachment: local;
+}
+.act-input:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--accent-soft); border-radius: 3px; }
+.act-input::placeholder { color: var(--muted); opacity: .55; }
+.act-input[readonly] { color: var(--muted); }
+.act-note { font-size: .8125rem; color: var(--muted); margin: 0; }
+.toggle { display: inline-flex; align-items: center; gap: .5rem; font-size: .875rem; color: var(--muted); cursor: pointer; }
+.toggle input { width: 1rem; height: 1rem; accent-color: var(--accent); }
+.tip {
+  border-left: 3px solid var(--rule); padding: .1rem 0 .1rem .9rem; margin: 0 0 1.25rem;
+  font-size: .9rem; color: var(--muted); max-width: 38rem;
+}
+
+/* Put away */
+.away-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: 1rem; align-items: start; }
+.away-list { list-style: none; margin: 0; padding: 0; }
+.away-list li { padding: .55rem 1.1rem .6rem; border-bottom: 1px solid var(--rule); display: grid; gap: .1rem; }
+.away-list li:last-child { border-bottom: 0; }
+.away-list .w { font-family: var(--f-hand); font-size: 1.1rem; line-height: 1.35; overflow-wrap: anywhere; }
+.away-list .a { font-size: .875rem; color: var(--muted); overflow-wrap: anywhere; }
+.away-list .a::before { content: "Next: "; font-weight: 700; color: var(--ink); }
+.away-list .a.say::before { content: "Say: "; }
+.away-list .a.ooc::before { content: "Out of my control. "; }
+.away-list .a.missing { font-style: italic; }
+.away-list .a.missing::before { content: ""; }
+.card-head.people { border-bottom-color: var(--people); color: var(--people); }
+.bedside {
+  margin-top: 1.5rem; padding: 1rem 1.1rem; border: 1px dashed var(--line); border-radius: var(--radius);
+  display: grid; gap: .35rem; max-width: 38rem;
+}
+.bedside p { margin: 0; color: var(--muted); font-size: .9375rem; }
+.bedside strong { color: var(--ink); }
+.empty { padding: 1rem 1.1rem; color: var(--muted); font-size: .9rem; margin: 0; }
+
+@media (max-width: 560px) {
+  .page-head { grid-template-columns: minmax(0, 1fr); padding-block: 1.5rem 1rem; }
+  .timer { min-width: 0; grid-template-columns: auto 1fr; align-items: center; }
+  .timer-label, .timer-bar, .timer-msg { grid-column: 1 / -1; }
+  .timer-time { font-size: 1.9rem; }
+  .timer-ctrls { justify-content: flex-end; }
+  .brand small { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .thinking::before { animation: none; }
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">Worry Time <small>Early evening, well before bed</small></div>
+    <nav aria-label="Progress"><ol class="steps" id="steps"></ol></nav>
+  </header>
+  <div id="banner"></div>
+  <main id="page"></main>
+</div>
+
+<script>
+(() => {
+  const DURATION = 15 * 60;
+  const MAX_CATEGORIES = 7;
+  const PEOPLE = "People";
+  const OOC_TEXT = "This worry is out of my control. I will deal with it as the solution becomes apparent.";
+  const KEY = "worry-time-proto-v1";
+
+  let uid = 100;
+  const id = () => "w" + (uid++);
+
+  const examples = () => ({
+    page: "small", part: 1, examples: true,
+    small: [
+      { id: id(), text: "Pick up the dry cleaning" },
+      { id: id(), text: "Pay the phone bill" },
+      { id: id(), text: "Email Dana the slides before 10" },
+    ],
+    big: [
+      { id: id(), text: "Car loan payment is due Friday and I'm $300 short", category: "Money", suggested: "Money", sugFor: "Car loan payment is due Friday and I'm $300 short",
+        action: "Call the lender at 9am to ask about moving the due date", ooc: false },
+      { id: id(), text: "Mom's biopsy results come back Thursday", category: "", suggested: null, sugFor: "", action: "", ooc: false },
+      { id: id(), text: "Sam keeps undercutting my work in team meetings", category: "", suggested: null, sugFor: "", action: "", ooc: false },
+    ],
+    timers: { small: { left: DURATION, endAt: null, done: false }, big: { left: DURATION, endAt: null, done: false } },
+  });
+  const blank = () => ({
+    page: "small", part: 1, examples: false,
+    small: [{ id: id(), text: "" }],
+    big: [{ id: id(), text: "", category: "", suggested: null, sugFor: "", action: "", ooc: false }],
+    timers: { small: { left: DURATION, endAt: null, done: false }, big: { left: DURATION, endAt: null, done: false } },
+  });
+
+  let S;
+  try { S = JSON.parse(localStorage.getItem(KEY)); } catch (e) { S = null; }
+  if (!S || !S.small || !S.big) S = examples();
+  // Paused timers on reload; ids continue past saved ones.
+  for (const k of ["small", "big"]) {
+    const t = S.timers[k];
+    if (t.endAt) { t.left = Math.max(0, (t.endAt - Date.now()) / 1000); t.endAt = null; }
+  }
+  [...S.small, ...S.big].forEach(x => { const n = parseInt(String(x.id).slice(1), 10); if (n >= uid) uid = n + 1; });
+
+  let saveT;
+  const save = () => { clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }, 200); };
+
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const $ = sel => document.querySelector(sel);
+
+  /* ---------- Category suggestion ----------
+     Placeholder for the LLM call. The real version would send the worry text plus the
+     categories already in use and get back one existing or new category name. */
+  const RULES = [
+    ["Health", /\b(doctor|sick|ill|pain|disease|diagnos|biopsy|test results?|surgery|hospital|health|symptom|therapy|medication|cancer)/i],
+    [PEOPLE, /\b(keeps|always|never listens|undercut|argu|fight|mad at|upset with|ignor|comments?|said|told me|blame|rude|respect)/i],
+    ["Money", /(\$\d|\b(bill|loan|rent|mortgage|money|debt|bank|tax|pay(ment)?|short|budget|credit|afford|savings))/i],
+    ["Work", /\b(job|work|boss|deadline|project|meeting|promotion|review|client|layoff|career|interview)/i],
+    ["Family", /\b(mom|dad|mother|father|kid|kids|son|daughter|parent|sister|brother|family|spouse|wife|husband|partner|marriage)/i],
+    ["Home", /\b(house|apartment|landlord|lease|repair|roof|leak|car|move|moving|neighbor)/i],
+  ];
+  function suggest(text, used) {
+    const t = text.toLowerCase();
+    for (const u of used) if (u !== PEOPLE && t.includes(u.toLowerCase())) return u;
+    for (const [cat, re] of RULES) if (re.test(text)) return cat;
+    return "Everyday";
+  }
+  const usedCategories = () => {
+    const set = [];
+    S.big.forEach(w => { if (w.category && !set.includes(w.category)) set.push(w.category); });
+    return set;
+  };
+  let pending = new Set();
+  function runSuggestions() {
+    S.big.forEach(w => {
+      if (!w.text.trim() || w.sugFor === w.text || pending.has(w.id)) return;
+      pending.add(w.id);
+      setTimeout(() => {
+        pending.delete(w.id);
+        w.suggested = suggest(w.text, usedCategories());
+        w.sugFor = w.text;
+        save();
+        if (S.page === "big" && S.part === 2) render();
+      }, 500 + Math.random() * 500);
+    });
+  }
+
+  /* ---------- Timer ---------- */
+  let audio;
+  function chime() {
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      const now = audio.currentTime;
+      [523.25, 783.99].forEach((f, i) => {
+        const o = audio.createOscillator(), g = audio.createGain();
+        o.type = "sine"; o.frequency.value = f;
+        g.gain.setValueAtTime(0, now + i * .35);
+        g.gain.linearRampToValueAtTime(.18, now + i * .35 + .05);
+        g.gain.exponentialRampToValueAtTime(.001, now + i * .35 + 1.6);
+        o.connect(g).connect(audio.destination); o.start(now + i * .35); o.stop(now + i * .35 + 1.7);
+      });
+    } catch (e) {}
+  }
+  const remaining = t => t.endAt ? Math.max(0, (t.endAt - Date.now()) / 1000) : t.left;
+  const fmt = s => { s = Math.ceil(s); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); };
+
+  function timerHTML(key) {
+    const t = S.timers[key];
+    return `<div class="timer" id="timer" data-key="${key}">
+      <div class="timer-label"><span>15-minute timer</span><span id="t-status"></span></div>
+      <div class="timer-time" id="t-time" role="timer" aria-live="off">${fmt(remaining(t))}</div>
+      <div class="timer-bar" aria-hidden="true"><span id="t-bar"></span></div>
+      <div class="timer-ctrls">
+        <button class="btn small primary" id="t-toggle" type="button">Start</button>
+        <button class="btn small ghost" id="t-reset" type="button">Reset</button>
+      </div>
+      <p class="timer-msg" id="t-msg" hidden>Time's up. Finish the thought you're on, then move on.</p>
+    </div>`;
+  }
+  function paintTimer() {
+    const el = $("#timer"); if (!el) return;
+    const t = S.timers[el.dataset.key];
+    const r = remaining(t);
+    if (t.endAt && r <= 0) { t.left = 0; t.endAt = null; t.done = true; chime(); save(); }
+    $("#t-time").textContent = fmt(r);
+    $("#t-bar").style.transform = `scaleX(${r / DURATION})`;
+    el.dataset.state = t.done ? "done" : t.endAt ? "running" : "idle";
+    $("#t-toggle").textContent = t.endAt ? "Pause" : (t.left < DURATION && !t.done ? "Resume" : "Start");
+    $("#t-toggle").disabled = t.done;
+    $("#t-status").textContent = t.done ? "Done" : t.endAt ? "Running" : (t.left < DURATION ? "Paused" : "");
+    $("#t-msg").hidden = !t.done;
+  }
+  setInterval(paintTimer, 250);
+
+  /* ---------- Render ---------- */
+  const STEPS = [["small", "Small worries"], ["big", "Big worries"], ["away", "Put away"]];
+  function renderSteps() {
+    $("#steps").innerHTML = STEPS.map(([k, label], i) =>
+      `<li><button type="button" data-go="${k}" ${S.page === k ? 'aria-current="step"' : ""}><span class="n">${i + 1}</span>${label}</button></li>`).join("");
+  }
+  function renderBanner() {
+    $("#banner").innerHTML = S.examples
+      ? `<div class="banner"><span><strong>Example worries are filled in</strong> so every step has something to look at.</span><button class="btn small" type="button" data-act="clear-examples">Clear examples</button></div>`
+      : "";
+  }
+
+  const lineRow = (list, w, i, ph) => `
+    <li class="line">
+      <input class="line-input" id="${list}-${w.id}" data-list="${list}" data-id="${w.id}" value="${esc(w.text)}"
+        placeholder="${esc(i === 0 ? ph : "")}" aria-label="${list === "small" ? "Small" : "Big"} worry ${i + 1}" autocomplete="off">
+      <button class="x" type="button" data-del="${list}" data-id="${w.id}" aria-label="Remove line ${i + 1}">&times;</button>
+    </li>`;
+
+  function pageSmall() {
+    const n = S.small.filter(w => w.text.trim()).length;
+    return `<section>
+      <div class="page-head">
+        <div><p class="eyebrow">Step 1 of 3</p><h1>Small worries</h1>
+          <p class="lede">Things you must not forget tomorrow. Write each one down and let it go. This becomes your to-do list.</p></div>
+        ${timerHTML("small")}
+      </div>
+      <div class="card">
+        <div class="card-head"><span>Don't forget tomorrow</span><span class="count">${n} ${n === 1 ? "item" : "items"}</span></div>
+        <ol class="lines">${S.small.map((w, i) => lineRow("small", w, i, "Pick up the dry cleaning")).join("")}</ol>
+        <div class="add-row"><button class="add" type="button" data-add="small"><span class="plus" aria-hidden="true">+</span>Add another</button></div>
+      </div>
+      <div class="foot"><span class="hint">Press Enter to start the next line.</span>
+        <div class="right"><button class="btn primary" type="button" data-go="big">Next: Big worries</button></div></div>
+    </section>`;
+  }
+
+  function partTabs() {
+    const parts = [[1, "List"], [2, "Categorize"], [3, "Next step"]];
+    return `<div class="parts" role="tablist" aria-label="Big worry steps">${parts.map(([n, l]) =>
+      `<button type="button" role="tab" aria-selected="${S.part === n}" data-part="${n}"><b>${n}</b>${l}</button>`).join("")}</div>`;
+  }
+
+  function part1() {
+    return `<p class="part-intro">The things that need more than a to-do. One worry per line.</p>
+      <div class="card">
+        <div class="card-head"><span>Big worries</span><span class="count">${S.big.filter(w => w.text.trim()).length} listed</span></div>
+        <ol class="lines">${S.big.map((w, i) => lineRow("big", w, i, "Finding money to repay the loan")).join("")}</ol>
+        <div class="add-row"><button class="add" type="button" data-add="big"><span class="plus" aria-hidden="true">+</span>Add another</button></div>
+      </div>`;
+  }
+
+  let newCatFor = null;
+  function part2() {
+    const filled = S.big.filter(w => w.text.trim());
+    if (!filled.length) return `<p class="part-intro">List a big worry first, then come back to sort it.</p>`;
+    const used = usedCategories();
+    const atCap = used.length >= MAX_CATEGORIES;
+    return `<p class="part-intro">Sorting a worry into a category is the first step to taking control of it. A suggestion is marked for each one. Pick it, pick another, or make a new one.</p>
+      <div class="cat-meta"><span>Worries about a specific person go in <strong>${PEOPLE}</strong>.</span>
+        <span class="count">${used.length} of ${MAX_CATEGORIES} categories</span></div>
+      <div class="cat-list">${filled.map(w => {
+        if (!w.suggested && !w.category) {
+          return `<div class="card cat-row"><p class="worry-text">${esc(w.text)}</p><span class="thinking">Suggesting a category…</span></div>`;
+        }
+        const opts = [];
+        if (w.suggested && w.suggested !== PEOPLE) opts.push(w.suggested);
+        used.forEach(c => { if (c !== PEOPLE && !opts.includes(c)) opts.push(c); });
+        if (w.category && w.category !== PEOPLE && !opts.includes(w.category)) opts.push(w.category);
+        const chip = (c, people) => {
+          const sug = c === w.suggested;
+          return `<button type="button" class="chip${people ? " people" : ""}${sug ? " suggested" : ""}" aria-pressed="${w.category === c}" data-cat="${esc(c)}" data-id="${w.id}">${esc(c)}${sug ? `<span class="sug">${w.category === c ? "" : "Suggested"}</span>` : ""}</button>`;
+        };
+        const newCtl = newCatFor === w.id
+          ? `<span class="new-cat"><input id="newcat-${w.id}" data-newcat="${w.id}" placeholder="New category" aria-label="New category name" maxlength="24"><button class="btn small" type="button" data-savecat="${w.id}">Add</button></span>`
+          : `<button type="button" class="chip new" data-newcatbtn="${w.id}" ${atCap ? "disabled" : ""}>+ New</button>`;
+        return `<div class="card cat-row">
+          <p class="worry-text">${esc(w.text)}</p>
+          <div class="chips">${opts.map(c => chip(c, false)).join("")}${newCtl}<span class="chip-sep" aria-hidden="true"></span>${chip(PEOPLE, true)}</div>
+          ${atCap && newCatFor !== w.id && !w.category ? `<span class="cap-note">Seven categories is plenty. Fold this one into an existing category.</span>` : ""}
+        </div>`;
+      }).join("")}</div>`;
+  }
+
+  const PLACEHOLDERS = {
+    Money: "Decide which bills matter most. Write the numbers to call about a payment plan.",
+    Work: "Write out tomorrow's schedule, or ask for 15 minutes with my manager.",
+    Health: "Call the clinic at 8am to book a follow-up.",
+    Family: "Text my sister to set a time to talk this weekend.",
+    Home: "Get two quotes for the repair this week.",
+  };
+  function part3() {
+    const filled = S.big.filter(w => w.text.trim());
+    if (!filled.length) return `<p class="part-intro">List a big worry first.</p>`;
+    return `<p class="part-intro">Think about each worry and its possible solutions. Then write down one action: the best step toward an eventual solution.</p>
+      <p class="tip">Not sure of the best solution? Take some small step toward one. Even if it isn't the best, it beats doing nothing.</p>
+      <div class="act-list">${filled.map(w => {
+        const people = w.category === PEOPLE;
+        const tag = w.category ? `<span class="tag${people ? " people" : ""}">${esc(w.category)}</span>` : `<span class="tag none">No category</span>`;
+        const label = people ? "What I want to say to them next time" : "One next step";
+        const ph = people ? "When you… I feel… Could we…" : (PLACEHOLDERS[w.category] || "The smallest useful thing I can do tomorrow");
+        return `<article class="card">
+          <div class="card-head">${tag}</div>
+          <div class="act-body">
+            <p class="worry-text">${esc(w.text)}</p>
+            <div><label class="field-label" for="act-${w.id}">${label}</label>
+              <textarea class="act-input" id="act-${w.id}" data-act-id="${w.id}" rows="2" placeholder="${esc(ph)}" ${w.ooc ? "readonly" : ""}>${esc(w.ooc ? OOC_TEXT : w.action)}</textarea></div>
+            ${people
+              ? `<p class="act-note">You probably can't change this person. You can decide what you'll say.</p>`
+              : `<label class="toggle"><input type="checkbox" id="ooc-${w.id}" data-ooc="${w.id}" ${w.ooc ? "checked" : ""}>This one is out of my control</label>`}
+          </div>
+        </article>`;
+      }).join("")}</div>`;
+  }
+
+  function pageBig() {
+    const body = S.part === 1 ? part1() : S.part === 2 ? part2() : part3();
+    const back = S.part === 1 ? `<button class="btn" type="button" data-go="small">Back</button>` : `<button class="btn" type="button" data-part="${S.part - 1}">Back</button>`;
+    const next = S.part < 3
+      ? `<button class="btn primary" type="button" data-part="${S.part + 1}">Next: ${S.part === 1 ? "Categorize" : "Next step"}</button>`
+      : `<button class="btn primary" type="button" data-go="away">Put them away</button>`;
+    return `<section>
+      <div class="page-head">
+        <div><p class="eyebrow">Step 2 of 3</p><h1>Big worries</h1>
+          <p class="lede">The ones that need more complete attention. List them, sort them, then pick one action for each.</p></div>
+        ${timerHTML("big")}
+      </div>
+      ${partTabs()}
+      ${body}
+      <div class="foot">${S.part === 1 ? `<span class="hint">Press Enter to start the next line.</span>` : ""}<div class="right">${back}${next}</div></div>
+    </section>`;
+  }
+
+  let confirmReset = false;
+  function pageAway() {
+    const todo = S.small.filter(w => w.text.trim());
+    const big = S.big.filter(w => w.text.trim());
+    const groups = {};
+    big.forEach(w => { const c = w.category || "Not sorted yet"; (groups[c] = groups[c] || []).push(w); });
+    const order = Object.keys(groups).sort((a, b) => (a === PEOPLE) - (b === PEOPLE) || (a === "Not sorted yet") - (b === "Not sorted yet"));
+    const item = w => {
+      const people = w.category === PEOPLE;
+      const a = w.ooc ? `<span class="a ooc">I'll deal with it as the solution becomes apparent.</span>`
+        : w.action.trim() ? `<span class="a${people ? " say" : ""}">${esc(w.action)}</span>`
+        : `<span class="a missing">No step written yet</span>`;
+      return `<li><span class="w">${esc(w.text)}</span>${a}</li>`;
+    };
+    return `<section>
+      <div class="page-head">
+        <div><p class="eyebrow">Step 3 of 3</p><h1>Put them away</h1>
+          <p class="lede">You've faced your worries and written down what to do about them. If one pops into your head in bed, tell yourself you've already started resolving it.</p></div>
+      </div>
+      <div class="away-grid">
+        <div class="card"><div class="card-head"><span>To do tomorrow</span><span class="count">${todo.length}</span></div>
+          ${todo.length ? `<ul class="away-list">${todo.map(w => `<li><span class="w">${esc(w.text)}</span></li>`).join("")}</ul>` : `<p class="empty">Nothing on the list.</p>`}</div>
+        ${order.map(c => `<div class="card"><div class="card-head${c === PEOPLE ? " people" : ""}"><span>${esc(c)}</span><span class="count">${groups[c].length}</span></div>
+          <ul class="away-list">${groups[c].map(item).join("")}</ul></div>`).join("")}
+      </div>
+      <div class="bedside">
+        <p><strong>Before bed:</strong> keep a blank card by the bed in case a new worry pops up.</p>
+        <p><strong>In the morning:</strong> check these cards and follow up. If a step doesn't work, try something else or get advice.</p>
+      </div>
+      <div class="foot"><div class="right">
+        <button class="btn" type="button" data-go="big">Back to edit</button>
+        <button class="btn" type="button" data-act="reset">${confirmReset ? "Click again to clear everything" : "Start a new session"}</button>
+      </div></div>
+    </section>`;
+  }
+
+  function render(focusId) {
+    renderSteps(); renderBanner();
+    $("#page").innerHTML = S.page === "small" ? pageSmall() : S.page === "big" ? pageBig() : pageAway();
+    paintTimer();
+    if (S.page === "big" && S.part === 2) runSuggestions();
+    if (focusId) { const el = document.getElementById(focusId); if (el) { el.focus(); if (el.setSelectionRange) el.setSelectionRange(el.value.length, el.value.length); } }
+    save();
+  }
+
+  const newBig = () => ({ id: id(), text: "", category: "", suggested: null, sugFor: "", action: "", ooc: false });
+  const newItem = list => list === "small" ? { id: id(), text: "" } : newBig();
+
+  /* ---------- Events ---------- */
+  document.addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.id === "t-toggle") {
+      const t = S.timers[$("#timer").dataset.key];
+      if (t.endAt) { t.left = remaining(t); t.endAt = null; } else { t.endAt = Date.now() + t.left * 1000; try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); } catch (err) {} }
+      paintTimer(); save(); return;
+    }
+    if (b.id === "t-reset") { const t = S.timers[$("#timer").dataset.key]; t.left = DURATION; t.endAt = null; t.done = false; paintTimer(); save(); return; }
+    if (b.dataset.go) { S.page = b.dataset.go; confirmReset = false; render(); window.scrollTo(0, 0); return; }
+    if (b.dataset.part) { S.page = "big"; S.part = +b.dataset.part; render(); return; }
+    if (b.dataset.add) {
+      const list = b.dataset.add, it = newItem(list); S[list].push(it); render(`${list}-${it.id}`); return;
+    }
+    if (b.dataset.del) {
+      const list = b.dataset.del; S[list] = S[list].filter(w => w.id !== b.dataset.id);
+      if (!S[list].length) S[list].push(newItem(list));
+      render(); return;
+    }
+    if (b.dataset.cat) {
+      const w = S.big.find(x => x.id === b.dataset.id); w.category = w.category === b.dataset.cat ? "" : b.dataset.cat; render(); return;
+    }
+    if (b.dataset.newcatbtn) { newCatFor = b.dataset.newcatbtn; render(`newcat-${newCatFor}`); return; }
+    if (b.dataset.savecat) { saveNewCat(b.dataset.savecat); return; }
+    if (b.dataset.act === "clear-examples") {
+      const fresh = blank(); fresh.page = S.page; fresh.part = S.part; fresh.timers = S.timers; S = fresh; render(); return;
+    }
+    if (b.dataset.act === "reset") {
+      if (!confirmReset) { confirmReset = true; render(); return; }
+      confirmReset = false; S = blank(); render(); window.scrollTo(0, 0); return;
+    }
+  });
+
+  function saveNewCat(wid) {
+    const input = document.getElementById(`newcat-${wid}`);
+    const name = (input?.value || "").trim().replace(/\s+/g, " ");
+    newCatFor = null;
+    if (name) {
+      const w = S.big.find(x => x.id === wid);
+      const existing = usedCategories().find(c => c.toLowerCase() === name.toLowerCase());
+      w.category = existing || (name.charAt(0).toUpperCase() + name.slice(1));
+    }
+    render();
+  }
+
+  document.addEventListener("input", e => {
+    const t = e.target;
+    if (t.dataset.list) {
+      const w = S[t.dataset.list].find(x => x.id === t.dataset.id); w.text = t.value;
+      if (t.dataset.list === "big" && w.category && !w.text.trim()) w.category = "";
+      save();
+      const cnt = t.closest(".card").querySelector(".card-head .count");
+      const n = S[t.dataset.list].filter(x => x.text.trim()).length;
+      cnt.textContent = t.dataset.list === "small" ? `${n} ${n === 1 ? "item" : "items"}` : `${n} listed`;
+    }
+    if (t.dataset.actId) { S.big.find(x => x.id === t.dataset.actId).action = t.value; save(); }
+  });
+
+  document.addEventListener("change", e => {
+    const t = e.target;
+    if (t.dataset.ooc) { S.big.find(x => x.id === t.dataset.ooc).ooc = t.checked; render(); }
+  });
+
+  document.addEventListener("keydown", e => {
+    const t = e.target;
+    if (t.dataset.list) {
+      const list = t.dataset.list, arr = S[list], i = arr.findIndex(x => x.id === t.dataset.id);
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const it = newItem(list); arr.splice(i + 1, 0, it); render(`${list}-${it.id}`);
+      } else if (e.key === "Backspace" && !t.value && arr.length > 1) {
+        e.preventDefault();
+        arr.splice(i, 1); const prev = arr[Math.max(0, i - 1)]; render(`${list}-${prev.id}`);
+      } else if (e.key === "ArrowDown" && arr[i + 1]) { e.preventDefault(); document.getElementById(`${list}-${arr[i + 1].id}`).focus(); }
+      else if (e.key === "ArrowUp" && arr[i - 1]) { e.preventDefault(); document.getElementById(`${list}-${arr[i - 1].id}`).focus(); }
+    }
+    if (t.dataset.newcat) {
+      if (e.key === "Enter") { e.preventDefault(); saveNewCat(t.dataset.newcat); }
+      if (e.key === "Escape") { newCatFor = null; render(); }
+    }
+  });
+
+  render();
+})();
+</script>
